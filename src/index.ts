@@ -1,18 +1,34 @@
-/**
- * Welcome to Cloudflare Workers! This is your first worker.
- *
- * - Run `npm run dev` in your terminal to start a development server
- * - Open a browser tab at http://localhost:8787/ to see your worker in action
- * - Run `npm run deploy` to publish your worker
- *
- * Bind resources to your worker in `wrangler.toml`. After adding bindings, a type definition for the
- * `Env` object can be regenerated with `npm run cf-typegen`.
- *
- * Learn more at https://developers.cloudflare.com/workers/
- */
+import { TelegramBot } from './telegram';
 
 export default {
 	async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-		return new Response('Hello World!');
+		const url = new URL(request.url);
+
+		// Telegram bot
+		if (url.pathname.startsWith('/telegram/')) {
+			// Check secret token
+			if (request.headers.get('X-Telegram-Bot-Api-Secret-Token') !== env.TELEGRAM_BOT_SECRET) {
+				return new Response('Unauthorized', { status: 403 });
+			}
+
+			const telegramBot = new TelegramBot(env.TELEGRAM_BOT_TOKEN, env.TELEGRAM_BOT_SECRET, env.context);
+
+			if (url.pathname === '/telegram/registerWebhook') {
+				const webhookUrl = `${url.protocol}//${url.hostname}/telegram/webhook`;
+				return new Response(await telegramBot.registerWebhook(webhookUrl));
+			}
+
+			if (url.pathname === '/telegram/unRegisterWebhook') {
+				return new Response(await telegramBot.unRegisterWebhook());
+			}
+
+			if (url.pathname === '/telegram/webhook') {
+				ctx.waitUntil(request.json().then((update) => telegramBot.onUpdate(update)));
+
+				return new Response('Ok');
+			}
+		}
+
+		return new Response('Not Found', { status: 404 });
 	},
 };
