@@ -1,5 +1,6 @@
 import { debugCommand, finishCommand, foodCommand, startCommand } from './command';
 import { createMessageHandler } from './event-handler';
+import { createScheduleHandler } from './schedule';
 import { Telegram } from './telegram';
 
 export default {
@@ -40,5 +41,9 @@ export default {
 		}
 
 		return new Response('Not Found', { status: 404 });
+	},
+	async scheduled(_event: Event, env: Env, _ctx: ExecutionContext) {
+		const telegram = new Telegram(env.TELEGRAM_BOT_TOKEN, env.TELEGRAM_BOT_SECRET, env.context);
+		await createScheduleHandler({ kv: env.context, provider: telegram })();
 	},
 };

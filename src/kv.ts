@@ -88,5 +88,37 @@ export async function insertChatRoomItem(
 	const items = safeParseJSON(await kv.get(`${providerName}:${roomId}:items`)) || [];
 
 	const { key, ...rest } = item;
-	return Promise.all([kv.put(`date:${item.dueAt}:${key}`, JSON.stringify(rest)), kv.put(key, JSON.stringify([...items, key]))]);
+	return Promise.all([kv.put(key, JSON.stringify(rest)), kv.put(`${providerName}:${roomId}:items`, JSON.stringify([...items, key]))]);
+}
+
+export async function listItemsByDate(
+	kv: KVNamespace,
+	{
+		date,
+	}: {
+		date: string;
+	}
+): Promise<Item[]> {
+	let items: KVNamespaceListKey<unknown, string>[] = [];
+
+	while (true) {
+		const { keys, list_complete } = await kv.list({ prefix: `date:${date}:`, limit: 1000 });
+
+		items = items.concat(keys);
+
+		if (list_complete) {
+			break;
+		}
+	}
+
+	const itemData = await Promise.all(
+		items.map(async (item) => {
+			return {
+				key: item.name,
+				...safeParseJSON(await kv.get(item.name)),
+			} as Item;
+		})
+	);
+
+	return itemData;
 }

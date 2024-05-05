@@ -13,4 +13,4 @@ id = "90a422fdfb6f4f88bb5c61bbf9ec0303"
 [triggers]
 # Schedule cron triggers:
 # - At every 3rd minute
-crons = [ "* * * * *" ]
+crons = [ "0 0 * * *" ]
