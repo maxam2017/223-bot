@@ -49,7 +49,7 @@ export function createMessageHandler({ provider, kv }: { provider: MessagingProv
 			}
 
 			default: {
-				const defaultHandler = createDefaultHandler();
+				const defaultHandler = createDefaultHandler({ provider });
 				return defaultHandler(message);
 			}
 		}
@@ -341,14 +341,16 @@ export function createStatusFinishHandler({ provider, kv }: { provider: Messagin
 	};
 }
 
-function createDefaultHandler() {
+function createDefaultHandler({ provider }: { provider: MessagingProvider }) {
 	const policeman223 = new Policeman223();
 
 	return async function onDefault(message: any) {
+		const roomId = message.chat.id;
+
 		if (message.text.includes('223')) {
-			return policeman223.takeSelfie();
+			return provider.sendPhoto(roomId, policeman223.takeSelfie());
 		}
 
-		return policeman223.replyToMessage(message.text || '', { replyAnyways: true });
+		return provider.sendMessage(roomId, policeman223.replyToMessage(message.text || '', { replyAnyways: true }));
 	};
 }
