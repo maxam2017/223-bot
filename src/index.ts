@@ -1,4 +1,6 @@
-import { TelegramBot } from './telegram';
+import { debugCommand, finishCommand, foodCommand, startCommand } from './command';
+import { createMessageHandler } from './event-handler';
+import { Telegram } from './telegram';
 
 export default {
 	async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
@@ -11,19 +13,27 @@ export default {
 				return new Response('Unauthorized', { status: 403 });
 			}
 
-			const telegramBot = new TelegramBot(env.TELEGRAM_BOT_TOKEN, env.TELEGRAM_BOT_SECRET, env.context);
+			const telegram = new Telegram(env.TELEGRAM_BOT_TOKEN, env.TELEGRAM_BOT_SECRET, env.context);
 
 			if (url.pathname === '/telegram/registerWebhook') {
 				const webhookUrl = `${url.protocol}//${url.hostname}/telegram/webhook`;
-				return new Response(await telegramBot.registerWebhook(webhookUrl));
+				return new Response(await telegram.registerWebhook(webhookUrl));
 			}
 
 			if (url.pathname === '/telegram/unRegisterWebhook') {
-				return new Response(await telegramBot.unRegisterWebhook());
+				return new Response(await telegram.unRegisterWebhook());
 			}
 
 			if (url.pathname === '/telegram/webhook') {
-				ctx.waitUntil(request.json().then((update) => telegramBot.onUpdate(update)));
+				ctx.waitUntil(
+					request.json().then((update: any) => {
+						const message = update.message;
+						if (!message) return;
+
+						const messageHandler = createMessageHandler({ provider: telegram, kv: env.context });
+						return messageHandler(message);
+					})
+				);
 
 				return new Response('Ok');
 			}

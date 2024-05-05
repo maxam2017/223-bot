@@ -21,3 +21,9 @@ export function range(start: number, end: number) {
 export function getDaysInMonth(year: number, month: number) {
 	return new Date(year, month, 0).getDate();
 }
+
+export function safeParseJSON<T = any>(text: any): T | undefined {
+	try {
+		return JSON.parse(text);
+	} catch {}
+}
